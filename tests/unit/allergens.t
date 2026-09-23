@@ -367,6 +367,28 @@ foreach my $test_ref (@tests) {
 	compare_to_expected_results($product_ref, "$expected_result_dir/$testid.json", $update_expected_results);
 }
 
+# Regression test for #14526: common Brazilian fortified-wheat-flour wording
+# must canonicalize to the existing taxonomy entry and inherit the gluten allergen.
+# Portuguese is configured with unaccenting, so the second variant also verifies
+# the common all-caps / unaccented label form without duplicating taxonomy entries.
+foreach my $ingredients_text ("farinha de trigo enriquecida com ferro e ácido fólico",
+	"FARINHA DE TRIGO ENRIQUECIDA COM FERRO E ACIDO FOLICO")
+{
+	my $product_ref = {
+		lc => "pt",
+		lang => "pt",
+		ingredients_text_pt => $ingredients_text
+	};
+
+	compute_languages($product_ref);
+	extract_ingredients_from_text($product_ref);
+	detect_allergens_from_text($product_ref);
+
+	is($product_ref->{ingredients}->[0]->{id},
+		"en:fortified-wheat-flour", "Portuguese fortified wheat flour is canonicalized");
+	is($product_ref->{allergens_tags}, ["en:gluten"], "Portuguese fortified wheat flour inherits the gluten allergen");
+}
+
 # Allergens marked with underscores can be the beginning of compound words.
 my @underscore_compound_word_tests = (
 	["nl", "_soja_lecithine", '<span class="allergen">soja</span>lecithine', "en:soybeans"],
